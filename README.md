@@ -10,6 +10,16 @@
 
 ![医联小智预约预览和人工确认](docs/images/assistant-confirm.png)
 
+选择「再想想」后结束本次操作。选择「确认预约」后，演示脚本调用 Java 接口创建预约，并根据返回结果展示预约编号和待支付状态。助手对话使用模拟回复。
+
+![取消本次预约操作](docs/images/assistant-booking-rejected.png)
+
+![确认后显示预约编号与待支付状态](docs/images/assistant-booking-success.png)
+
+单独打开「我的预约」，可以从 MySQL 演示库核对同一笔预约（编号 2）的就诊时间、费用和待支付状态。
+
+![我的预约中显示新建的待支付记录](docs/images/patient-booking-result.png)
+
 **自然语言查号源**：在对话里询问医生的可预约时段，查看费用和余量。
 
 ![医联小智号源查询](docs/images/assistant-query.png)
