@@ -14,6 +14,14 @@
 
 ![医联小智号源查询](docs/images/assistant-query.png)
 
+**自然语言查医生**：询问「内科有哪些医生？」，在对话中查看医生姓名、科室和职称。
+
+![医联小智按科室查询医生](docs/images/assistant-doctors.png)
+
+**智能问答**：以「预约成功后怎么签到？」为例，展示就诊流程说明和参考文档。
+
+![医联小智签到流程问答与参考文档](docs/images/assistant-qa.png)
+
 **患者端首页**：集中展示医生查询、我的预约、排队签到和诊疗记录入口。
 
 ![医联智诊患者端首页](docs/images/patient-home.png)
