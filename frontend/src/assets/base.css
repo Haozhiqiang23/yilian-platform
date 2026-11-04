@@ -1,0 +1,98 @@
+/* ============================================================
+   全局基础样式：重置 + 通用工具类
+   ============================================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-ink);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+button {
+  font-family: var(--font-sans);
+}
+
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* 可点击元素统一手型 */
+.clickable,
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
+}
+
+/* 无障碍：键盘可见焦点 */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 无障碍：跟随系统减弱动效 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- 通用工具类 ---------- */
+.text-muted {
+  color: var(--color-ink-3);
+}
+.text-primary {
+  color: var(--color-primary);
+}
+.text-danger {
+  color: var(--color-danger);
+}
+.text-warn {
+  color: var(--color-warn);
+}
+.flex {
+  display: flex;
+  align-items: center;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

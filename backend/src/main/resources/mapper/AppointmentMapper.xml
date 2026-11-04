@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.appointment.mapper.AppointmentMapper">
+
+    <!--
+        锁定患者行，使同一患者的并发创建预约请求串行执行，
+        避免同时预约不同医生但日期和时段相同。
+    -->
+
+    <select id="selectPatientIdForUpdate" resultType="long">
+        SELECT id
+        FROM patient
+        WHERE user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <!-- 使用号源的具体开始时间计算就诊开始时刻。 -->
+    <select id="selectVisitStartTime" resultType="java.time.LocalDateTime">
+        SELECT TIMESTAMP(s.visit_date, s.start_time)
+        FROM source s
+        WHERE s.id = #{sourceId}
+    </select>
+
+    <!-- 锁定号源行，事务提交或回滚前，其他请求不能同时修改该号源。 -->
+    <select id="selectSourceForUpdate"
+            resultType="com.yilian.madp.appointment.vo.SourceLockResponse">
+        SELECT id,
+               doctor_id,
+               remain_count,
+               status,
+               visit_date,
+               start_time,
+               end_time
+        FROM source
+        WHERE id = #{sourceId}
+        FOR UPDATE
+    </select>
+
+    <!--
+        selected_source 是本次选择的号源；
+        existing_source 是患者已有预约对应的号源。
+        日期相同且实际起止时间发生重叠才视为时间冲突。
+    -->
+
+    <select id="countActiveSameTimeAppointment" resultType="int">
+        SELECT COUNT(*)
+        FROM appointment a
+        INNER JOIN source existing_source
+                ON existing_source.id = a.source_id
+        INNER JOIN source selected_source
+                ON selected_source.id = #{sourceId}
+        WHERE a.patient_id = #{patientId}
+          AND a.status NOT IN ('取消', '已完成')
+          AND existing_source.visit_date = selected_source.visit_date
+          AND existing_source.start_time &lt; selected_source.end_time
+          AND existing_source.end_time &gt; selected_source.start_time
+    </select>
+
+    <!-- WHERE 中再次判断余量，作为防止号源扣成负数的最后一道保护。 -->
+    <update id="decreaseSource">
+        UPDATE source
+        SET remain_count = remain_count - 1
+        WHERE id = #{sourceId}
+          AND remain_count > 0
+          AND status = '正常'
+    </update>
+
+    <!-- 统计和列表共用筛选条件，保证 total 与 records 的范围一致。 -->
+    <sql id="mineWhere">
+        WHERE a.patient_id = #{patientId}
+        <if test="status != null and status != ''">
+            AND a.status = #{status}
+        </if>
+    </sql>
+
+    <select id="countMine" resultType="int">
+        SELECT COUNT(*)
+        FROM appointment a
+        <include refid="mineWhere" />
+    </select>
+
+    <!--
+        预约列表需要展示医生、科室和号源时间，因此使用联表查询；
+        支付单可能尚未创建，所以 payment 必须使用 LEFT JOIN。
+    -->
+    <select id="selectMine"
+            resultType="com.yilian.madp.appointment.vo.AppointmentListItemResponse">
+        SELECT a.id AS appointment_id,
+               a.status,
+               d.id AS doctor_id,
+               d.name AS doctor_name,
+               dep.name AS department,
+               s.visit_date,
+               s.time_period,
+               s.start_time,
+               s.end_time,
+               s.fee,
+               p.amount,
+               a.create_time
+        <!-- 【预约查询优化】先用联合索引筛选和分页，再关联展示字段。
+             外层仍排序保证返回顺序；只排序本页，不宣称完全没有filesort。
+             此改写依赖医生/科室/号源外键及支付appointment_id唯一约束，
+             若以后增加关联表过滤或一对多关联，必须重新验证分页语义。 -->
+        FROM (
+            SELECT a.id, a.status, a.doctor_id, a.source_id, a.create_time
+            FROM appointment a
+            <include refid="mineWhere" />
+            ORDER BY a.create_time DESC, a.id DESC
+            LIMIT #{offset}, #{limit}
+        ) a
+        INNER JOIN doctor d
+                ON d.id = a.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        INNER JOIN source s
+                ON s.id = a.source_id
+        LEFT JOIN payment p
+               ON p.appointment_id = a.id
+        ORDER BY a.create_time DESC,
+                 a.id DESC
+    </select>
+
+    <!--
+        使用 patient_id 限制预约归属；支付订单可能尚未创建，
+        因此 payment 使用 LEFT JOIN，未支付单字段允许返回 null。
+    -->
+    <select id="selectOwnedDetail"
+            resultType="com.yilian.madp.appointment.vo.AppointmentDetailResponse">
+        SELECT a.id AS appointment_id,
+               a.status,
+               a.create_time,
+               d.id AS doctor_id,
+               d.name AS doctor_name,
+               dep.name AS department,
+               s.id AS source_id,
+               s.visit_date,
+               s.time_period,
+               s.start_time,
+               s.end_time,
+               s.fee,
+               p.order_no,
+               p.amount,
+               p.status AS payment_status
+        FROM appointment a
+        INNER JOIN doctor d
+                ON d.id = a.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        INNER JOIN source s
+                ON s.id = a.source_id
+        LEFT JOIN payment p
+               ON p.appointment_id = a.id
+        WHERE a.id = #{appointmentId}
+          AND a.patient_id = #{patientId}
+    </select>
+
+    <!-- 取消前锁定预约，避免取消、支付等状态变更同时执行。 -->
+    <select id="selectOwnedAppointmentForUpdate"
+            resultType="com.yilian.madp.appointment.entity.Appointment">
+        SELECT id,
+               patient_id,
+               doctor_id,
+               source_id,
+               status,
+               create_time,
+               update_time
+        FROM appointment
+        WHERE id = #{appointmentId}
+          AND patient_id = #{patientId}
+        FOR UPDATE
+    </select>
+
+    <update id="cancelPendingAppointment">
+        UPDATE appointment
+        SET status = '取消'
+        WHERE id = #{appointmentId}
+          AND status = '待支付'
+    </update>
+
+    <update id="increaseSource">
+        UPDATE source
+        SET remain_count = remain_count + 1
+        WHERE id = #{sourceId}
+    </update>
+
+    <update id="closePendingPayment">
+        UPDATE payment
+        SET status = '已关闭'
+        WHERE appointment_id = #{appointmentId}
+          AND status = '待支付'
+    </update>
+
+    <!-- 已支付预约进入退款前，锁定对应支付单并取得退款金额。 -->
+    <select id="selectPaymentForUpdate"
+            resultType="com.yilian.madp.appointment.vo.CancelPaymentLockResponse">
+        SELECT id AS payment_id,
+               amount,
+               status
+        FROM payment
+        WHERE appointment_id = #{appointmentId}
+        FOR UPDATE
+    </select>
+
+    <update id="markAppointmentRefunding">
+        UPDATE appointment
+        SET status = '退款中'
+        WHERE id = #{appointmentId}
+          AND status = '已支付'
+    </update>
+
+</mapper>

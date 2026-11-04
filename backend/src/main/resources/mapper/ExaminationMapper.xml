@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.examination.mapper.ExaminationMapper">
+
+    <!-- 归属条件直接进入 SQL，其他医生的诊疗记录不会暴露给当前医生。 -->
+    <select id="selectOwnedMedicalRecord"
+            resultType="com.yilian.madp.examination.vo.ExaminationMedicalRecordOwner">
+        SELECT mr.id AS medical_record_id,
+               pt.user_id AS patient_user_id
+        FROM medical_record mr
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        WHERE mr.id = #{medicalRecordId}
+          AND d.user_id = #{userId}
+    </select>
+
+    <!-- 分页总数和列表共用同一组医生归属、状态筛选条件。 -->
+    <sql id="doctorExaminationConditions">
+        WHERE d.user_id = #{userId}
+        <if test="query.status != null and query.status != ''">
+            AND e.status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="countDoctorExaminations" resultType="int">
+        SELECT COUNT(*)
+        FROM examination e
+        INNER JOIN medical_record mr ON mr.id = e.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        <include refid="doctorExaminationConditions" />
+    </select>
+
+    <select id="selectDoctorExaminations"
+            resultType="com.yilian.madp.examination.vo.DoctorExaminationListItemResponse">
+        SELECT e.id AS examination_id,
+               e.medical_record_id,
+               mr.appointment_id,
+               pt.id AS patient_id,
+               pt.name AS patient_name,
+               e.item_name,
+               e.status,
+               er.id AS report_id,
+               er.result,
+               er.remark,
+               e.create_time
+        FROM examination e
+        INNER JOIN medical_record mr ON mr.id = e.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        LEFT JOIN examination_report er ON er.examination_id = e.id
+        <include refid="doctorExaminationConditions" />
+        ORDER BY e.create_time DESC, e.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectPatientExaminations"
+            resultType="com.yilian.madp.examination.vo.PatientExaminationListItemResponse">
+        SELECT e.id AS examination_id,
+               e.medical_record_id,
+               e.item_name,
+               e.status,
+               er.id AS report_id,
+               er.result,
+               er.remark,
+               d.name AS doctor_name,
+               dep.name AS department,
+               e.create_time
+        FROM examination e
+        INNER JOIN medical_record mr ON mr.id = e.medical_record_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN department dep ON dep.id = d.department_id
+        LEFT JOIN examination_report er ON er.examination_id = e.id
+        WHERE pt.user_id = #{userId}
+        ORDER BY e.create_time DESC, e.id DESC
+    </select>
+
+    <!-- 事务内锁定检查申请，同时完成医生归属校验。 -->
+    <select id="selectOwnedExaminationForUpdate"
+            resultType="com.yilian.madp.examination.vo.ExaminationLockResponse">
+        SELECT e.id AS examination_id,
+               e.status,
+               pt.user_id AS patient_user_id
+        FROM examination e
+        INNER JOIN medical_record mr ON mr.id = e.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        WHERE e.id = #{examinationId}
+          AND d.user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectPatientOwnedExaminationForUpdate"
+            resultType="com.yilian.madp.examination.vo.ExaminationLockResponse">
+        SELECT e.id AS examination_id,
+               e.status,
+               pt.user_id AS patient_user_id
+        FROM examination e
+        INNER JOIN medical_record mr ON mr.id = e.medical_record_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        WHERE e.id = #{examinationId}
+          AND pt.user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <update id="markAwaitingDoctorReview">
+        UPDATE examination
+        SET status = '待医生确认'
+        WHERE id = #{examinationId}
+          AND status IN ('申请', '需补充')
+    </update>
+
+    <update id="markCompletedAfterReview">
+        UPDATE examination
+        SET status = '完成'
+        WHERE id = #{examinationId}
+          AND status = '待医生确认'
+    </update>
+
+    <update id="markNeedsRevision">
+        UPDATE examination
+        SET status = '需补充'
+        WHERE id = #{examinationId}
+          AND status = '待医生确认'
+    </update>
+
+    <!-- 已完成状态不可被后续并发请求再次覆盖。 -->
+    <update id="markCompleted">
+        UPDATE examination
+        SET status = '完成'
+        WHERE id = #{examinationId}
+          AND status IN ('申请', '执行中')
+    </update>
+
+    <!--
+        item_name/result 同时提供页面现有别名 exam_name/conclusion，
+        使患者端和医生端都能直接展示，不需要前端自行拼装字段。
+    -->
+    <sql id="reportDetailColumns">
+        er.id,
+        e.id AS examination_id,
+        e.medical_record_id,
+        e.item_name,
+        e.item_name AS exam_name,
+        e.status,
+        er.result,
+        er.result AS conclusion,
+        er.remark,
+        er.create_time,
+        d.id AS doctor_id,
+        d.name AS doctor_name,
+        dep.name AS department
+    </sql>
+
+    <!-- 患者只能查看属于自己诊疗记录的检查报告。 -->
+    <select id="selectPatientOwnedReport"
+            resultType="com.yilian.madp.examination.vo.ExaminationReportResponse">
+        SELECT <include refid="reportDetailColumns" />
+        FROM examination e
+        INNER JOIN examination_report er
+                ON er.examination_id = e.id
+        INNER JOIN medical_record mr
+                ON mr.id = e.medical_record_id
+        INNER JOIN patient p
+                ON p.id = mr.patient_id
+        INNER JOIN doctor d
+                ON d.id = mr.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        WHERE e.id = #{examinationId}
+          AND p.user_id = #{userId}
+          AND e.status = '完成'
+    </select>
+
+    <!-- 医生只能查看本人接诊记录下的检查报告。 -->
+    <select id="selectDoctorOwnedReport"
+            resultType="com.yilian.madp.examination.vo.ExaminationReportResponse">
+        SELECT <include refid="reportDetailColumns" />
+        FROM examination e
+        INNER JOIN examination_report er
+                ON er.examination_id = e.id
+        INNER JOIN medical_record mr
+                ON mr.id = e.medical_record_id
+        INNER JOIN doctor d
+                ON d.id = mr.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        WHERE e.id = #{examinationId}
+          AND d.user_id = #{userId}
+          AND e.status = '完成'
+    </select>
+
+</mapper>

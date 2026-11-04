@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.statistics.mapper.AdminStatisticsMapper">
+
+    <!--
+        今日预约按实际就诊日期统计，而不是按预约记录创建时间统计。
+        这样后台首页展示的是今天需要接诊的业务量。
+    -->
+    <select id="selectOverview"
+            resultType="com.yilian.madp.admin.statistics.vo.AdminStatisticsResponse">
+        SELECT (SELECT COUNT(*) FROM sys_user) AS total_users,
+               (SELECT COUNT(*) FROM doctor) AS total_doctors,
+               (SELECT COUNT(*)
+                FROM appointment a
+                INNER JOIN source s ON s.id = a.source_id
+                WHERE s.visit_date = CURRENT_DATE
+                  AND a.status != '取消') AS today_appointments,
+               (SELECT COUNT(*)
+                FROM appointment a
+                INNER JOIN source s ON s.id = a.source_id
+                WHERE s.visit_date = CURRENT_DATE
+                  AND a.status = '已完成') AS today_completed,
+               (SELECT COUNT(*)
+                FROM refund
+                WHERE status = '退款申请') AS pending_refund_count,
+               (SELECT COUNT(*)
+                FROM doctor
+                WHERE status = '待审核') AS pending_audit_doctor_count
+    </select>
+
+</mapper>

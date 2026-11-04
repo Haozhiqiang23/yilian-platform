@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.doctor.mapper.DoctorMapper">
+    <!-- 统计和分页查询共用同一套条件，保证 total 和 records 的筛选条件一致。 -->
+    <sql id="enabledDoctorWhere">
+        WHERE d.status = '启用'
+        <if test="query.departmentId != null">
+            AND d.department_id = #{query.departmentId}
+        </if>
+        <if test="query.name != null and query.name != ''">
+            AND d.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.date != null">
+            AND EXISTS (
+                SELECT 1
+                FROM source selected_source
+                WHERE selected_source.doctor_id = d.id
+                  AND selected_source.visit_date = #{query.date}
+                  AND selected_source.status = '正常'
+            )
+        </if>
+    </sql>
+
+    <select id="countEnabled" resultType="int">
+        SELECT COUNT(*)
+        FROM doctor d
+        <include refid="enabledDoctorWhere" />
+    </select>
+
+    <!-- 指定日期时汇总当天号源；没有日期时汇总该医生的全部剩余号源。 -->
+    <select id="selectEnabledPage"
+            resultType="com.yilian.madp.doctor.vo.DoctorListItemResponse">
+        SELECT d.id,
+               d.name,
+               d.department_id,
+               dep.name AS department,
+               d.title,
+               d.introduction,
+               COALESCE((
+                   SELECT SUM(s.remain_count)
+                   FROM source s
+                   WHERE s.doctor_id = d.id
+                     AND s.status = '正常'
+                   <if test="query.date != null">
+                       AND s.visit_date = #{query.date}
+                   </if>
+               ), 0) AS remain_count
+        FROM doctor d
+        INNER JOIN department dep ON dep.id = d.department_id
+        <include refid="enabledDoctorWhere" />
+        ORDER BY d.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 医生不存在或状态不是“启用”时，本查询返回 null。 -->
+    <select id="selectEnabledDetail"
+            resultType="com.yilian.madp.doctor.vo.DoctorDetailResponse">
+        SELECT d.id,
+               d.name,
+               d.department_id,
+               dep.name AS department,
+               d.title,
+               d.introduction
+        FROM doctor d
+        INNER JOIN department dep ON dep.id = d.department_id
+        WHERE d.id = #{doctorId}
+          AND d.status = '启用'
+    </select>
+
+    <!--
+        个人资料同时关联登录账号和科室。
+        status 返回账号状态，doctor_status 单独返回医生业务状态，避免两个状态混淆。
+    -->
+    <select id="selectProfileByUserId"
+            resultType="com.yilian.madp.doctor.vo.DoctorProfileResponse">
+        SELECT d.id AS doctor_id,
+               u.id AS user_id,
+               u.username,
+               u.role,
+               d.name,
+               d.department_id,
+               dep.name AS department_name,
+               d.title,
+               d.introduction,
+               u.status,
+               d.status AS doctor_status
+        FROM doctor d
+        INNER JOIN sys_user u ON u.id = d.user_id
+        INNER JOIN department dep ON dep.id = d.department_id
+        WHERE d.user_id = #{userId}
+    </select>
+
+
+</mapper>

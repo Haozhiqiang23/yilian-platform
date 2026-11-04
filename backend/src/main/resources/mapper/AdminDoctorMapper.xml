@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.doctor.mapper.AdminDoctorMapper">
+
+    <sql id="doctorJoins">
+        FROM doctor d
+        INNER JOIN sys_user u ON u.id = d.user_id
+        INNER JOIN department dep ON dep.id = d.department_id
+    </sql>
+
+    <sql id="doctorColumns">
+        d.id AS doctor_id,
+        u.id AS user_id,
+        u.username,
+        d.name,
+        d.department_id,
+        dep.name AS department,
+        d.title,
+        d.introduction,
+        CASE u.status WHEN '正常' THEN 'NORMAL' WHEN '禁用' THEN 'DISABLED' ELSE u.status END AS status,
+        d.status AS doctor_status,
+        CASE d.status WHEN '待审核' THEN 'PENDING' WHEN '启用' THEN 'APPROVED' WHEN '停用' THEN 'DISABLED' ELSE d.status END AS audit_status,
+        u.create_time
+    </sql>
+
+    <!-- NORMAL/DISABLED 筛选登录账号；其他值用于筛选医生业务或审核状态。 -->
+    <sql id="doctorConditions">
+        WHERE 1 = 1
+        <if test="query.keyword != null">
+            AND (d.name LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR u.username LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <if test="query.status != null">
+            <choose>
+                <when test="query.status == 'NORMAL'">
+                    AND u.status = '正常'
+                </when>
+                <when test="query.status == 'DISABLED'">
+                    AND u.status = '禁用'
+                </when>
+                <when test="query.status == 'PENDING'">
+                    AND d.status = '待审核'
+                </when>
+                <otherwise>
+                    AND d.status = #{query.status}
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="countDoctors" resultType="int">
+        SELECT COUNT(*)
+        <include refid="doctorJoins" />
+        <include refid="doctorConditions" />
+    </select>
+
+    <select id="selectDoctors"
+            resultType="com.yilian.madp.admin.doctor.vo.AdminDoctorListItemResponse">
+        SELECT <include refid="doctorColumns" />
+        <include refid="doctorJoins" />
+        <include refid="doctorConditions" />
+        ORDER BY d.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectDoctorDetail"
+            resultType="com.yilian.madp.admin.doctor.vo.AdminDoctorDetailResponse">
+        SELECT d.id AS doctor_id,
+               u.id AS user_id,
+               u.username,
+               d.name,
+               d.department_id,
+               dep.name AS department,
+               d.title,
+               d.introduction,
+               CASE u.status
+                   WHEN '正常' THEN 'NORMAL'
+                   WHEN '禁用' THEN 'DISABLED'
+                   ELSE u.status
+               END AS account_status,
+               d.status AS doctor_status,
+               d.disable_reason,
+               d.disable_time,
+               d.disabled_by,
+               disabled_admin.username AS disabled_by_name,
+               u.create_time
+        <include refid="doctorJoins" />
+        LEFT JOIN sys_user disabled_admin ON disabled_admin.id = d.disabled_by
+        WHERE d.id = #{doctorId}
+    </select>
+
+    <select id="countDoctorHistory" resultType="int">
+        SELECT COUNT(*)
+        FROM operation_log
+        WHERE target_type = 'DOCTOR'
+          AND target_id = #{doctorId}
+    </select>
+
+    <select id="selectDoctorHistory"
+            resultType="com.yilian.madp.admin.doctor.vo.DoctorHistoryItemResponse">
+        SELECT l.id,
+               l.operation_type,
+               l.action,
+               l.target,
+               l.reason,
+               l.result,
+               l.operator_id,
+               operator.username AS operator_name,
+               l.create_time
+        FROM operation_log l
+        LEFT JOIN sys_user operator ON operator.id = l.operator_id
+        WHERE l.target_type = 'DOCTOR'
+          AND l.target_id = #{doctorId}
+        ORDER BY l.create_time DESC, l.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPendingAudits" resultType="int">
+        SELECT COUNT(*)
+        FROM doctor
+        WHERE status = '待审核'
+    </select>
+
+    <select id="selectPendingAudits"
+            resultType="com.yilian.madp.admin.doctor.vo.AdminDoctorListItemResponse">
+        SELECT <include refid="doctorColumns" />
+        <include refid="doctorJoins" />
+        WHERE d.status = '待审核'
+        ORDER BY d.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectDoctorForAudit"
+            resultType="com.yilian.madp.admin.doctor.vo.DoctorAuditLockResponse">
+        SELECT d.id AS doctor_id,
+               d.user_id,
+               d.name,
+               d.status AS doctor_status
+        FROM doctor d
+        WHERE d.id = #{doctorId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateDoctorAuditStatus">
+        UPDATE doctor
+        SET status = #{doctorStatus},
+            disable_reason = CASE
+                WHEN #{doctorStatus} = '停用' THEN #{reason}
+                ELSE NULL
+            END,
+            disable_time = CASE
+                WHEN #{doctorStatus} = '停用' THEN CURRENT_TIMESTAMP
+                ELSE NULL
+            END,
+            disabled_by = CASE
+                WHEN #{doctorStatus} = '停用' THEN #{adminId}
+                ELSE NULL
+            END
+        WHERE id = #{doctorId}
+          AND status = '待审核'
+    </update>
+
+    <update id="updateDoctorStatus">
+        UPDATE doctor
+        SET status = #{doctorStatus},
+            disable_reason = CASE
+                WHEN #{doctorStatus} = '停用' THEN #{reason}
+                ELSE NULL
+            END,
+            disable_time = CASE
+                WHEN #{doctorStatus} = '停用' THEN CURRENT_TIMESTAMP
+                ELSE NULL
+            END,
+            disabled_by = CASE
+                WHEN #{doctorStatus} = '停用' THEN #{adminId}
+                ELSE NULL
+            END
+        WHERE id = #{doctorId}
+    </update>
+
+    <update id="updateDoctorUserStatus">
+        UPDATE sys_user
+        SET status = #{userStatus}
+        WHERE id = #{userId}
+    </update>
+
+    <!-- target 保留便于管理员直接阅读，结构化字段供历史记录接口稳定筛选。 -->
+    <insert id="insertAuditLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId},
+            'DOCTOR_REVIEW',
+            #{result},
+            'DOCTOR',
+            #{doctorId},
+            LEFT(CONCAT(
+                '医生ID=', #{doctorId},
+                '，姓名=', #{doctorName},
+                '，审核=', CASE #{result} WHEN 'PASS' THEN '通过' ELSE '拒绝' END,
+                CASE WHEN #{reason} IS NULL THEN '' ELSE CONCAT('，原因=', #{reason}) END
+            ), 100),
+            #{reason},
+            '成功'
+        )
+    </insert>
+
+    <insert id="insertStatusLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId},
+            'DOCTOR_STATUS',
+            CASE #{action} WHEN '禁用' THEN 'DISABLE' ELSE 'RESTORE' END,
+            'DOCTOR',
+            #{doctorId},
+            LEFT(CONCAT(
+                '医生ID=', #{doctorId},
+                '，姓名=', #{doctorName},
+                '，操作=', #{action},
+                CASE WHEN #{reason} IS NULL THEN '' ELSE CONCAT('，原因=', #{reason}) END
+            ), 100),
+            #{reason},
+            '成功'
+        )
+    </insert>
+
+</mapper>

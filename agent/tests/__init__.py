@@ -1,0 +1,1 @@
+"""MADP Assistant 学习项目自动化测试。"""

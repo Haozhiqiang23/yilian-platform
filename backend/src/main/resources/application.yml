@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: madp-backend
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 500ms
+      timeout: 500ms
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:yilian_demo}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      # 完整建库与演示数据由仓库根目录的重建脚本统一维护，避免启动时执行残缺 DDL。
+      mode: never
+      schema-locations: classpath:schema.sql
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-hours: 2
+server:
+  port: 8080
+
+# 【Redis查询优化】默认关闭，部署时显式启用；不同环境必须使用不同前缀。
+app:
+  doctor-cache:
+    enabled: ${DOCTOR_CACHE_ENABLED:false}
+    prefix: ${DOCTOR_CACHE_PREFIX:madp:doctor-detail:v1:}

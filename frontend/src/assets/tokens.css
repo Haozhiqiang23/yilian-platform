@@ -1,0 +1,43 @@
+/* ============================================================
+   医联智诊平台 · 全局设计令牌（Design Tokens）
+   来源：outputs/design-system/design-system/医联智诊平台/MASTER.md
+   风格：医疗薄荷青 + 玻璃拟态（Calm Interface）
+   ============================================================ */
+:root {
+  /* 品牌色 */
+  --color-primary: #0e8f86;        /* 薄荷青主色 */
+  --color-primary-deep: #0b6e68;   /* 主色深（hover/渐变端） */
+  --color-primary-soft: #e0f4f2;   /* 主色浅底 */
+  --color-accent: #16a34a;         /* 强调绿（成功/CTA） */
+  --color-accent-soft: #e7f6ec;
+  --color-info: #185fa5;           /* 信息蓝 */
+  --color-info-soft: #e6f1fb;
+  --color-warn: #d97706;           /* 警告琥珀 */
+  --color-warn-soft: #fef3e2;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fcebeb;
+
+  /* 中性色 */
+  --color-bg: #f0fdfa;             /* 页面背景（薄荷淡） */
+  --color-surface: #ffffff;        /* 卡片表面 */
+  --color-ink: #134e4a;            /* 正文（深青墨） */
+  --color-ink-2: #0f766e;          /* 次级标题 */
+  --color-ink-3: #5b7a76;          /* 弱化文字 */
+  --color-border: rgba(16, 100, 94, 0.12);
+  --color-border-strong: rgba(14, 143, 134, 0.28);
+
+  /* 圆角 / 阴影 */
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 2px 8px rgba(13, 110, 103, 0.05);
+  --shadow: 0 10px 30px rgba(13, 110, 103, 0.08), 0 2px 8px rgba(13, 110, 103, 0.05);
+  --shadow-lg: 0 24px 60px rgba(13, 110, 103, 0.16);
+
+  /* 字体 */
+  --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+
+  /* 布局尺寸 */
+  --bottom-nav-h: 64px;
+  --topbar-h: 56px;
+}

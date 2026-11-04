@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.user.mapper.AdminUserMapper">
+
+    <!-- 统计和分页列表共用条件，确保 total 与 records 一致。 -->
+    <sql id="userConditions">
+        WHERE 1 = 1
+        <if test="query.keyword != null">
+            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR p.name LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR p.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR d.name LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <if test="query.role != null">
+            AND UPPER(u.role) = UPPER(#{query.role})
+        </if>
+        <if test="query.status != null">
+            <choose>
+                <when test="query.status == 'NORMAL' or query.status == '正常'">
+                    AND u.status = '正常'
+                </when>
+                <when test="query.status == 'DISABLED' or query.status == '禁用'">
+                    AND u.status = '禁用'
+                </when>
+                <otherwise>
+                    AND u.status = #{query.status}
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_user u
+        LEFT JOIN patient p ON p.user_id = u.id
+        LEFT JOIN doctor d ON d.user_id = u.id
+        <include refid="userConditions" />
+    </select>
+
+    <!--
+        患者姓名和手机号来自 patient，医生姓名来自 doctor。
+        管理员没有业务资料记录，因此姓名回退为登录账号。
+    -->
+    <select id="selectUsers"
+            resultType="com.yilian.madp.admin.user.vo.AdminUserListItemResponse">
+        SELECT u.id,
+               u.username,
+               COALESCE(p.name, d.name, u.username) AS name,
+               p.phone,
+               UPPER(u.role) AS role,
+               CASE u.status
+                   WHEN '正常' THEN 'NORMAL'
+                   WHEN '禁用' THEN 'DISABLED'
+                   ELSE u.status
+               END AS status,
+               u.create_time
+        FROM sys_user u
+        LEFT JOIN patient p ON p.user_id = u.id
+        LEFT JOIN doctor d ON d.user_id = u.id
+        <include refid="userConditions" />
+        ORDER BY u.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectRoleById" resultType="string">
+        SELECT UPPER(role)
+        FROM sys_user
+        WHERE id = #{userId}
+    </select>
+
+    <select id="selectDoctorIdByUserId" resultType="long">
+        SELECT id
+        FROM doctor
+        WHERE user_id = #{userId}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE sys_user
+        SET status = CASE #{status}
+            WHEN 'NORMAL' THEN '正常'
+            WHEN 'DISABLED' THEN '禁用'
+        END
+        WHERE id = #{userId}
+    </update>
+
+    <insert id="insertStatusLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId},
+            'USER_STATUS',
+            CASE #{action} WHEN '禁用' THEN 'DISABLE' ELSE 'RESTORE' END,
+            'USER',
+            #{userId},
+            LEFT(CONCAT(
+                '用户ID=', #{userId},
+                '，操作=', #{action},
+                CASE WHEN #{reason} IS NULL THEN '' ELSE CONCAT('，原因=', #{reason}) END
+            ), 100),
+            #{reason},
+            '成功'
+        )
+    </insert>
+
+</mapper>

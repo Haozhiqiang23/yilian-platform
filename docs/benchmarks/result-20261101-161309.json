@@ -1,0 +1,1078 @@
+{
+  "summary": {
+    "requests": 100,
+    "success": 20,
+    "sold_out": 80,
+    "other": 0,
+    "elapsed_seconds": 1.292,
+    "completed_requests_per_second": 77.41,
+    "latency_ms": {
+      "p50": 1080.83,
+      "p95": 1272.586,
+      "p99": 1284.076
+    },
+    "note": "单轮本机HTTP测试，含业务拒绝；需另行SQL核对，不代表生产容量"
+  },
+  "results": [
+    {
+      "patient_index": 1,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 20,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 951.178
+    },
+    {
+      "patient_index": 2,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1208.3
+    },
+    {
+      "patient_index": 3,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 18,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 925.762
+    },
+    {
+      "patient_index": 4,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1243.343
+    },
+    {
+      "patient_index": 5,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1223.779
+    },
+    {
+      "patient_index": 6,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 15,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 886.78
+    },
+    {
+      "patient_index": 7,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1289.236
+    },
+    {
+      "patient_index": 8,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1215.103
+    },
+    {
+      "patient_index": 9,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1219.838
+    },
+    {
+      "patient_index": 10,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 3,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 561.753
+    },
+    {
+      "patient_index": 11,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1110.001
+    },
+    {
+      "patient_index": 12,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1277.598
+    },
+    {
+      "patient_index": 13,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 993.935
+    },
+    {
+      "patient_index": 14,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1166.756
+    },
+    {
+      "patient_index": 15,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 4,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 604.559
+    },
+    {
+      "patient_index": 16,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 967.784
+    },
+    {
+      "patient_index": 17,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1230.856
+    },
+    {
+      "patient_index": 18,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1266.506
+    },
+    {
+      "patient_index": 19,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1227.218
+    },
+    {
+      "patient_index": 20,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1008.342
+    },
+    {
+      "patient_index": 21,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1091.281
+    },
+    {
+      "patient_index": 22,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1027.185
+    },
+    {
+      "patient_index": 23,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1143.339
+    },
+    {
+      "patient_index": 24,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1134.815
+    },
+    {
+      "patient_index": 25,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1272.586
+    },
+    {
+      "patient_index": 26,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1284.076
+    },
+    {
+      "patient_index": 27,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 967.011
+    },
+    {
+      "patient_index": 28,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 986.015
+    },
+    {
+      "patient_index": 29,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1178.547
+    },
+    {
+      "patient_index": 30,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1153.557
+    },
+    {
+      "patient_index": 31,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 11,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 747.626
+    },
+    {
+      "patient_index": 32,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1168.231
+    },
+    {
+      "patient_index": 33,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1252.24
+    },
+    {
+      "patient_index": 34,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1080.529
+    },
+    {
+      "patient_index": 35,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 965.606
+    },
+    {
+      "patient_index": 36,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 19,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 935.088
+    },
+    {
+      "patient_index": 37,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1192.611
+    },
+    {
+      "patient_index": 38,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 966.103
+    },
+    {
+      "patient_index": 39,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1010.816
+    },
+    {
+      "patient_index": 40,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1255.95
+    },
+    {
+      "patient_index": 41,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1276.947
+    },
+    {
+      "patient_index": 42,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1185.764
+    },
+    {
+      "patient_index": 43,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 8,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 669.694
+    },
+    {
+      "patient_index": 44,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1103.556
+    },
+    {
+      "patient_index": 45,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1043.471
+    },
+    {
+      "patient_index": 46,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1013.123
+    },
+    {
+      "patient_index": 47,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 14,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 870.545
+    },
+    {
+      "patient_index": 48,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1248.252
+    },
+    {
+      "patient_index": 49,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1172.965
+    },
+    {
+      "patient_index": 50,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 2,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 570.031
+    },
+    {
+      "patient_index": 51,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 997.843
+    },
+    {
+      "patient_index": 52,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1260.062
+    },
+    {
+      "patient_index": 53,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1001.887
+    },
+    {
+      "patient_index": 54,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1067.067
+    },
+    {
+      "patient_index": 55,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1206.133
+    },
+    {
+      "patient_index": 56,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1109.493
+    },
+    {
+      "patient_index": 57,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1188.059
+    },
+    {
+      "patient_index": 58,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 975.637
+    },
+    {
+      "patient_index": 59,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 5,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 616.258
+    },
+    {
+      "patient_index": 60,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1117.225
+    },
+    {
+      "patient_index": 61,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 16,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 896.583
+    },
+    {
+      "patient_index": 62,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1230.683
+    },
+    {
+      "patient_index": 63,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1073.44
+    },
+    {
+      "patient_index": 64,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 7,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 649.963
+    },
+    {
+      "patient_index": 65,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 6,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 635.661
+    },
+    {
+      "patient_index": 66,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 12,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 807.44
+    },
+    {
+      "patient_index": 67,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1242.203
+    },
+    {
+      "patient_index": 68,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1057.99
+    },
+    {
+      "patient_index": 69,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 992.439
+    },
+    {
+      "patient_index": 70,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1278.485
+    },
+    {
+      "patient_index": 71,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1123.661
+    },
+    {
+      "patient_index": 72,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 9,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 697.274
+    },
+    {
+      "patient_index": 73,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1120.238
+    },
+    {
+      "patient_index": 74,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1102.045
+    },
+    {
+      "patient_index": 75,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1072.812
+    },
+    {
+      "patient_index": 76,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1227.174
+    },
+    {
+      "patient_index": 77,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1155.837
+    },
+    {
+      "patient_index": 78,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1049.036
+    },
+    {
+      "patient_index": 79,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1081.079
+    },
+    {
+      "patient_index": 80,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1101.762
+    },
+    {
+      "patient_index": 81,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1069.13
+    },
+    {
+      "patient_index": 82,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1122.65
+    },
+    {
+      "patient_index": 83,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1016.553
+    },
+    {
+      "patient_index": 84,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 13,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 831.447
+    },
+    {
+      "patient_index": 85,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 1,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 535.603
+    },
+    {
+      "patient_index": 86,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1131.897
+    },
+    {
+      "patient_index": 87,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1035.745
+    },
+    {
+      "patient_index": 88,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 950.704
+    },
+    {
+      "patient_index": 89,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1181.653
+    },
+    {
+      "patient_index": 90,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 17,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 880.382
+    },
+    {
+      "patient_index": 91,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1006.361
+    },
+    {
+      "patient_index": 92,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1056.514
+    },
+    {
+      "patient_index": 93,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1080.83
+    },
+    {
+      "patient_index": 94,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1263.501
+    },
+    {
+      "patient_index": 95,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1013.894
+    },
+    {
+      "patient_index": 96,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1252.295
+    },
+    {
+      "patient_index": 97,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1270.952
+    },
+    {
+      "patient_index": 98,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1256.753
+    },
+    {
+      "patient_index": 99,
+      "http": 200,
+      "body": {
+        "code": 200,
+        "message": "预约创建成功",
+        "data": {
+          "appointmentId": 10,
+          "status": "待支付"
+        }
+      },
+      "milliseconds": 713.306
+    },
+    {
+      "patient_index": 100,
+      "http": 409,
+      "body": {
+        "code": 409,
+        "message": "号源已约满",
+        "data": null
+      },
+      "milliseconds": 1041.259
+    }
+  ]
+}

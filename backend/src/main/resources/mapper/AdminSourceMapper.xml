@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.source.mapper.AdminSourceMapper">
+
+    <select id="selectActiveDoctorTitle" resultType="string">
+        SELECT COALESCE(d.title, '医师')
+        FROM doctor d
+        INNER JOIN sys_user u ON u.id = d.user_id
+        WHERE d.id = #{doctorId}
+          AND d.status = '启用'
+          AND u.status = '正常'
+    </select>
+
+    <select id="countNewSourceConflict" resultType="int">
+        SELECT COUNT(*) FROM source
+        WHERE doctor_id = #{doctorId}
+          AND visit_date = #{visitDate}
+          AND start_time &lt; #{endTime}
+          AND end_time &gt; #{startTime}
+    </select>
+
+    <insert id="insertSource">
+        INSERT INTO source (doctor_id, visit_date, time_period, start_time, end_time, fee, total_count, remain_count, status)
+        VALUES (#{doctorId}, #{visitDate}, #{timePeriod}, #{startTime}, #{endTime}, #{fee}, #{totalCount}, #{totalCount}, '正常')
+    </insert>
+
+    <select id="selectLastInsertId" resultType="long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <insert id="insertSourceCreateLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId}, 'SOURCE_CREATE', 'CREATE', 'SOURCE', #{sourceId},
+            LEFT(#{target}, 100), '管理员新建号源', '成功'
+        )
+    </insert>
+
+    <!-- 统计与分页共用条件，避免 total 和 records 不一致。 -->
+    <sql id="sourceConditions">
+        WHERE 1 = 1
+        <if test="query.doctorName != null">
+            AND d.name LIKE CONCAT('%', #{query.doctorName}, '%')
+        </if>
+        <if test="query.date != null">
+            AND s.visit_date = #{query.date}
+        </if>
+        <if test="query.status != null">
+            <choose>
+                <when test="query.status == '已停诊'">
+                    AND s.status = '停诊'
+                </when>
+                <when test="query.status == '已结束'">
+                    AND s.status != '停诊'
+                    AND TIMESTAMP(s.visit_date, s.end_time) &lt;= CURRENT_TIMESTAMP
+                </when>
+                <when test="query.status == '已约满'">
+                    AND s.status != '停诊'
+                    AND TIMESTAMP(s.visit_date, s.end_time) &gt; CURRENT_TIMESTAMP
+                    AND s.remain_count = 0
+                </when>
+                <when test="query.status == '低余量'">
+                    AND s.status != '停诊'
+                    AND TIMESTAMP(s.visit_date, s.end_time) &gt; CURRENT_TIMESTAMP
+                    AND s.remain_count BETWEEN 1 AND 5
+                </when>
+                <when test="query.status == '正常'">
+                    AND s.status != '停诊'
+                    AND TIMESTAMP(s.visit_date, s.end_time) &gt; CURRENT_TIMESTAMP
+                    AND s.remain_count &gt; 5
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="countSources" resultType="int">
+        SELECT COUNT(*)
+        FROM source s
+        INNER JOIN doctor d ON d.id = s.doctor_id
+        <include refid="sourceConditions" />
+    </select>
+
+    <!-- 概览统计使用全部筛选结果，不受 LIMIT 分页影响。 -->
+    <select id="selectOverview"
+            resultType="com.yilian.madp.admin.source.vo.AdminSourceOverviewResponse">
+        SELECT COUNT(*) AS current_sources,
+               COALESCE(SUM(s.total_count), 0) AS total_count,
+               COALESCE(SUM(s.remain_count), 0) AS remain_count,
+               COALESCE(SUM(CASE
+                   WHEN s.status != '停诊'
+                    AND TIMESTAMP(s.visit_date, s.end_time) &gt; CURRENT_TIMESTAMP
+                    AND s.remain_count BETWEEN 1 AND 5
+                   THEN 1 ELSE 0
+               END), 0) AS low_remain
+        FROM source s
+        INNER JOIN doctor d ON d.id = s.doctor_id
+        <include refid="sourceConditions" />
+    </select>
+
+    <select id="selectSources"
+            resultType="com.yilian.madp.admin.source.vo.AdminSourceListItemResponse">
+        SELECT s.id AS source_id,
+               d.id AS doctor_id,
+               d.name AS doctor_name,
+               dep.name AS department,
+               s.visit_date,
+               s.time_period,
+               s.start_time,
+               s.end_time,
+               s.total_count,
+               s.remain_count,
+               (SELECT COUNT(*)
+                  FROM appointment a2
+                 WHERE a2.source_id = s.id
+                   AND a2.status &lt;&gt; '取消') AS booked_count,
+               CASE
+                   WHEN s.status = '停诊' THEN '已停诊'
+                   WHEN TIMESTAMP(s.visit_date, s.end_time) &lt;= CURRENT_TIMESTAMP THEN '已结束'
+                   WHEN s.remain_count = 0 THEN '已约满'
+                   WHEN s.remain_count &lt;= 5 THEN '低余量'
+                   ELSE '正常'
+               END AS status
+        FROM source s
+        INNER JOIN doctor d ON d.id = s.doctor_id
+        INNER JOIN department dep ON dep.id = d.department_id
+        <include refid="sourceConditions" />
+        ORDER BY s.visit_date DESC, s.start_time ASC, s.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 在事务中锁定号源，防止管理员调整时患者同时预约。 -->
+    <select id="selectSourceForUpdate"
+            resultType="com.yilian.madp.admin.source.vo.AdminSourceLockResponse">
+        SELECT s.id AS source_id,
+               s.doctor_id,
+               d.name AS doctor_name,
+               s.visit_date,
+               s.time_period,
+               s.start_time,
+               s.end_time,
+               s.total_count,
+               s.remain_count,
+               (SELECT COUNT(*)
+                  FROM appointment a2
+                 WHERE a2.source_id = s.id
+                   AND a2.status &lt;&gt; '取消') AS booked_count,
+               s.status,
+               s.suspension_reason
+        FROM source s
+        INNER JOIN doctor d ON d.id = s.doctor_id
+        WHERE s.id = #{sourceId}
+        FOR UPDATE
+    </select>
+
+    <select id="countScheduleConflict" resultType="int">
+        SELECT COUNT(*)
+        FROM source
+        WHERE doctor_id = #{doctorId}
+          AND visit_date = #{visitDate}
+          AND start_time = #{startTime}
+          AND end_time = #{endTime}
+          AND id != #{sourceId}
+    </select>
+
+    <update id="updateSource">
+        UPDATE source
+        SET visit_date = #{visitDate},
+            time_period = #{timePeriod},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            total_count = #{totalCount},
+            remain_count = #{remainCount}
+        WHERE id = #{sourceId}
+    </update>
+
+    <insert id="insertSourceAdjustLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId}, 'SOURCE_ADJUST', 'UPDATE', 'SOURCE', #{sourceId},
+            LEFT(#{target}, 100), #{reason}, '成功'
+        )
+    </insert>
+
+    <!--
+        停诊预览只统计未结束的预约。
+        已签到或接诊中的患者需要人工处理，因此会阻止自动停诊。
+    -->
+    <select id="selectSuspensionPreview"
+            resultType="com.yilian.madp.admin.source.vo.SourceSuspensionPreviewResponse">
+        SELECT s.id AS source_id,
+               d.name AS doctor_name,
+               s.visit_date,
+               s.time_period,
+               s.status AS source_status,
+               s.total_count,
+               s.remain_count,
+               COALESCE(SUM(CASE
+                   WHEN a.status NOT IN ('取消', '已完成') THEN 1 ELSE 0
+               END), 0) AS affected_appointment_count,
+               COALESCE(SUM(CASE WHEN a.status = '待支付' THEN 1 ELSE 0 END), 0)
+                   AS pending_payment_count,
+               COALESCE(SUM(CASE WHEN a.status = '已支付' THEN 1 ELSE 0 END), 0)
+                   AS paid_count,
+               COALESCE(SUM(CASE WHEN a.status = '已签到' THEN 1 ELSE 0 END), 0)
+                   AS signed_count,
+               COALESCE(SUM(CASE WHEN a.status = '接诊中' THEN 1 ELSE 0 END), 0)
+                   AS in_consultation_count,
+               COALESCE(SUM(CASE WHEN a.status = '退款中' THEN 1 ELSE 0 END), 0)
+                   AS refunding_count,
+               COALESCE(SUM(CASE WHEN a.status = '已支付' THEN 1 ELSE 0 END), 0)
+                   AS estimated_refund_count,
+               CASE
+                   WHEN s.status = '停诊' THEN FALSE
+                   WHEN s.visit_date &lt; CURRENT_DATE THEN FALSE
+                   WHEN COALESCE(SUM(CASE
+                       WHEN a.status IN ('已签到', '接诊中', '退款中') THEN 1 ELSE 0
+                   END), 0) &gt; 0 THEN FALSE
+                   ELSE TRUE
+               END AS can_suspend,
+               CASE
+                   WHEN s.status = '停诊' THEN '该号源已经停诊'
+                   WHEN s.visit_date &lt; CURRENT_DATE THEN '已结束的号源不能停诊'
+                   WHEN COALESCE(SUM(CASE WHEN a.status = '接诊中' THEN 1 ELSE 0 END), 0) &gt; 0
+                       THEN '存在接诊中的患者，需要人工处理'
+                   WHEN COALESCE(SUM(CASE WHEN a.status = '已签到' THEN 1 ELSE 0 END), 0) &gt; 0
+                       THEN '存在已签到患者，需要人工处理'
+                   WHEN COALESCE(SUM(CASE WHEN a.status = '退款中' THEN 1 ELSE 0 END), 0) &gt; 0
+                       THEN '存在退款中的预约，请先完成退款处理'
+                   ELSE NULL
+               END AS blocked_reason
+        FROM source s
+        INNER JOIN doctor d ON d.id = s.doctor_id
+        LEFT JOIN appointment a ON a.source_id = s.id
+        WHERE s.id = #{sourceId}
+        GROUP BY s.id, d.name, s.visit_date, s.time_period, s.status,
+                 s.total_count, s.remain_count
+    </select>
+
+    <select id="countActiveAppointments" resultType="int">
+        SELECT COUNT(*)
+        FROM appointment
+        WHERE source_id = #{sourceId}
+          AND status NOT IN ('取消', '已完成')
+    </select>
+
+    <!-- 锁定全部有效预约，保证停诊分类处理期间状态不会被并发支付改变。 -->
+    <select id="selectActiveAppointmentsForUpdate"
+            resultType="com.yilian.madp.admin.source.vo.SourceAffectedAppointmentResponse">
+        SELECT a.id AS appointment_id,
+               p.user_id AS recipient_user_id,
+               a.status,
+               pay.id AS payment_id,
+               pay.amount AS payment_amount,
+               pay.status AS payment_status
+        FROM appointment a
+        INNER JOIN patient p ON p.id = a.patient_id
+        LEFT JOIN payment pay ON pay.appointment_id = a.id
+        WHERE a.source_id = #{sourceId}
+          AND a.status NOT IN ('取消', '已完成')
+        ORDER BY a.id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="cancelPendingAppointments">
+        UPDATE appointment
+        SET status = '取消'
+        WHERE source_id = #{sourceId}
+          AND status = '待支付'
+    </update>
+
+    <update id="markPaidAppointmentsRefunding">
+        UPDATE appointment
+        SET status = '退款中'
+        WHERE source_id = #{sourceId}
+          AND status = '已支付'
+    </update>
+
+    <update id="closePendingPayments">
+        UPDATE payment p
+        INNER JOIN appointment a ON a.id = p.appointment_id
+        SET p.status = '已关闭'
+        WHERE a.source_id = #{sourceId}
+          AND a.status = '取消'
+          AND p.status = '待支付'
+    </update>
+
+    <!-- 返还被取消预约占用的号源，并确保剩余数不会超过总数。 -->
+    <update id="restoreCancelledSourceCount">
+        UPDATE source
+        SET remain_count = LEAST(total_count, remain_count + #{cancelledCount})
+        WHERE id = #{sourceId}
+    </update>
+
+    <update id="updateSourceStatus">
+        UPDATE source
+        SET status = #{status},
+            suspension_reason = CASE WHEN #{status} = '停诊' THEN #{reason} ELSE NULL END,
+            suspension_time = CASE WHEN #{status} = '停诊' THEN CURRENT_TIMESTAMP ELSE NULL END,
+            suspended_by = CASE WHEN #{status} = '停诊' THEN #{adminId} ELSE NULL END
+        WHERE id = #{sourceId}
+    </update>
+
+    <insert id="insertSourceStatusLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId}, 'SOURCE_STATUS', #{action}, 'SOURCE', #{sourceId},
+            LEFT(#{target}, 100), #{reason}, '成功'
+        )
+    </insert>
+
+</mapper>

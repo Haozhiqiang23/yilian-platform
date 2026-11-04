@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.queue.mapper.AdminQueueMapper">
+
+    <!-- 统计和分页复用相同条件，保证 total 与 records 一致。 -->
+    <sql id="queueConditions">
+        WHERE 1 = 1
+        <if test="query.doctorName != null">
+            AND d.name LIKE CONCAT('%', #{query.doctorName}, '%')
+        </if>
+        <if test="query.date != null">
+            AND s.visit_date = #{query.date}
+        </if>
+        <if test="query.status != null">
+            AND q.status = #{query.status}
+        </if>
+    </sql>
+
+    <!-- 排名完成后再筛选，避免按状态查询时重新计算位置。 -->
+    <sql id="rankedQueueConditions">
+        WHERE 1 = 1
+        <if test="query.doctorName != null">
+            AND ranked.doctor_name LIKE CONCAT('%', #{query.doctorName}, '%')
+        </if>
+        <if test="query.date != null">
+            AND ranked.visit_date = #{query.date}
+        </if>
+        <if test="query.status != null">
+            AND ranked.status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="countQueues" resultType="int">
+        SELECT COUNT(*)
+        FROM queue q
+        INNER JOIN appointment a ON a.id = q.appointment_id
+        INNER JOIN source s ON s.id = a.source_id
+        INNER JOIN doctor d ON d.id = a.doctor_id
+        <include refid="queueConditions" />
+    </select>
+<!--查询排队-->
+    <select id="selectQueues"
+            resultType="com.yilian.madp.admin.queue.vo.AdminQueueListItemResponse">
+        SELECT ranked.queue_id,
+               ranked.appointment_id,
+               ranked.doctor_id,
+               ranked.doctor_name,
+               ranked.patient_id,
+               ranked.patient_name,
+               ranked.queue_no,
+               ranked.position,
+               ranked.status,
+               ranked.visit_date,
+               ranked.time_period,
+               ranked.sign_in_time
+        FROM (
+            SELECT q.id AS queue_id,
+                   a.id AS appointment_id,
+                   d.id AS doctor_id,
+                   d.name AS doctor_name,
+                   p.id AS patient_id,
+                   p.name AS patient_name,
+                   q.queue_no,
+                   CASE WHEN q.status = '等待接诊' THEN
+                       ROW_NUMBER() OVER (
+                           PARTITION BY d.id, s.visit_date, s.time_period, q.status
+                           ORDER BY q.sort_no ASC, q.sign_time ASC, q.id ASC
+                       )
+                   ELSE NULL END AS position,
+                   q.status,
+                   s.visit_date,
+                   s.time_period,
+                   q.sign_time AS sign_in_time
+            FROM queue q
+            INNER JOIN appointment a ON a.id = q.appointment_id
+            INNER JOIN source s ON s.id = a.source_id
+            INNER JOIN doctor d ON d.id = a.doctor_id
+            INNER JOIN patient p ON p.id = a.patient_id
+        ) ranked
+        <include refid="rankedQueueConditions" />
+        ORDER BY ranked.visit_date DESC,
+                 ranked.doctor_id ASC,
+                 ranked.time_period ASC,
+                 ranked.position ASC,
+                 ranked.queue_id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 锁定目标队列并取得其所属的医生、日期和时段。 -->
+    <select id="selectQueueForUpdate"
+            resultType="com.yilian.madp.admin.queue.vo.QueueAdjustLockResponse">
+        SELECT q.id AS queue_id,
+               a.doctor_id,
+               s.visit_date,
+               s.time_period,
+               q.status,
+               q.sort_no
+        FROM queue q
+        INNER JOIN appointment a ON a.id = q.appointment_id
+        INNER JOIN source s ON s.id = a.source_id
+        WHERE q.id = #{queueId}
+        FOR UPDATE
+    </select>
+
+    <!-- 锁定同一医生、同一日期、同一时段内所有等待患者，避免并发调序。 -->
+    <select id="selectWaitingQueueIdsForUpdate" resultType="long">
+        SELECT q.id
+        FROM queue q
+        INNER JOIN appointment a ON a.id = q.appointment_id
+        INNER JOIN source s ON s.id = a.source_id
+        WHERE a.doctor_id = #{doctorId}
+          AND s.visit_date = #{visitDate}
+          AND s.time_period = #{timePeriod}
+          AND q.status = '等待接诊'
+        ORDER BY q.sort_no ASC, q.sign_time ASC, q.id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="updateSortNo">
+        UPDATE queue
+        SET sort_no = #{sortNo}
+        WHERE id = #{queueId}
+    </update>
+
+    <insert id="insertAdjustLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId}, 'QUEUE_ADJUST', 'REORDER', 'QUEUE', #{queueId},
+            LEFT(CONCAT('队列ID=', #{queueId}, '，原位置=', #{oldPosition}, '，新位置=', #{newPosition}), 100),
+            #{reason}, '成功'
+        )
+    </insert>
+
+</mapper>

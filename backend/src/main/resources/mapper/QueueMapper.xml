@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.queue.mapper.QueueMapper">
+
+    <!-- 通过 appointment.patient_id 限制只能查询自己的队列。 -->
+    <select id="selectOwnedQueue"
+            resultType="com.yilian.madp.queue.vo.QueueStatusResponse">
+        SELECT q.id AS queue_id,
+               q.appointment_id,
+               q.queue_no,
+               q.status,
+               q.sign_time,
+               a.doctor_id,
+               d.name AS doctor_name,
+               dep.name AS department,
+               s.visit_date,
+               s.time_period
+        FROM queue q
+        INNER JOIN appointment a
+                ON a.id = q.appointment_id
+        INNER JOIN doctor d
+                ON d.id = a.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        INNER JOIN source s
+                ON s.id = a.source_id
+        WHERE a.id = #{appointmentId}
+          AND a.patient_id = #{patientId}
+    </select>
+
+    <!-- rank 表示同一医生、日期和时段中排在当前患者前方的等待人数。 -->
+    <select id="countWaitingAhead" resultType="int">
+        SELECT COUNT(*)
+        FROM queue ahead
+        INNER JOIN appointment ahead_a ON ahead_a.id = ahead.appointment_id
+        INNER JOIN source ahead_s ON ahead_s.id = ahead_a.source_id
+        INNER JOIN queue current_q ON current_q.id = #{queueId}
+        INNER JOIN appointment current_a ON current_a.id = current_q.appointment_id
+        INNER JOIN source current_s ON current_s.id = current_a.source_id
+        WHERE ahead_a.doctor_id = current_a.doctor_id
+          AND ahead_s.visit_date = current_s.visit_date
+          AND ahead_s.time_period = current_s.time_period
+          AND ahead.status = '等待接诊'
+          AND (
+              ahead.sort_no &lt; current_q.sort_no
+              OR (ahead.sort_no = current_q.sort_no AND ahead.id &lt; current_q.id)
+          )
+    </select>
+
+</mapper>

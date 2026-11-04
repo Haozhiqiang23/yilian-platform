@@ -1,0 +1,58 @@
+{
+  "all": {
+    "original": {
+      "median_ms": 3.113,
+      "samples_ms": [
+        3.113,
+        4.441,
+        2.917,
+        2.999,
+        3.385,
+        2.803,
+        3.242
+      ],
+      "explain": "1\tSIMPLE\ta\tNULL\tref\tidx_appointment_patient,idx_appointment_doctor,fk_appointment_source,idx_appointment_patient_created,idx_appointment_patient_status_created\tidx_appointment_patient\t8\tconst\t1000\t100.00\tUsing temporary; Using filesort\n1\tSIMPLE\td\tNULL\tALL\tPRIMARY,idx_doctor_department_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n1\tSIMPLE\tdep\tNULL\teq_ref\tPRIMARY\tPRIMARY\t8\tmadp_index_benchmark.d.department_id\t1\t100.00\tNULL\n1\tSIMPLE\ts\tNULL\tALL\tPRIMARY\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n1\tSIMPLE\tp\tNULL\tALL\tuk_payment_appointment_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n"
+    },
+    "rewritten": {
+      "median_ms": 0.283,
+      "samples_ms": [
+        0.283,
+        0.271,
+        0.29,
+        0.285,
+        0.252,
+        0.274,
+        0.305
+      ],
+      "explain": "1\tPRIMARY\td\tNULL\tALL\tPRIMARY,idx_doctor_department_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing temporary; Using filesort\n1\tPRIMARY\tdep\tNULL\teq_ref\tPRIMARY\tPRIMARY\t8\tmadp_index_benchmark.d.department_id\t1\t100.00\tNULL\n1\tPRIMARY\ts\tNULL\tALL\tPRIMARY\tNULL\tNULL\tNULL\t1\t100.00\tUsing join buffer (hash join)\n1\tPRIMARY\t<derived2>\tNULL\tref\t<auto_key1>\t<auto_key1>\t8\tmadp_index_benchmark.d.id\t2\t10.00\tUsing where\n1\tPRIMARY\tp\tNULL\teq_ref\tuk_payment_appointment_id\tuk_payment_appointment_id\t8\ta.id\t1\t100.00\tNULL\n2\tDERIVED\tappointment\tNULL\tref\tidx_appointment_patient,idx_appointment_patient_created,idx_appointment_patient_status_created\tidx_appointment_patient_created\t8\tconst\t1000\t100.00\tNULL\n"
+    }
+  },
+  "status": {
+    "original": {
+      "median_ms": 1.127,
+      "samples_ms": [
+        1.127,
+        1.125,
+        1.131,
+        1.092,
+        1.07,
+        1.492,
+        1.259
+      ],
+      "explain": "1\tSIMPLE\ta\tNULL\tref\tidx_appointment_patient,idx_appointment_doctor,fk_appointment_source,idx_appointment_patient_created,idx_appointment_patient_status_created\tidx_appointment_patient_status_created\t130\tconst,const\t333\t100.00\tUsing temporary; Using filesort\n1\tSIMPLE\td\tNULL\tALL\tPRIMARY,idx_doctor_department_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n1\tSIMPLE\tdep\tNULL\teq_ref\tPRIMARY\tPRIMARY\t8\tmadp_index_benchmark.d.department_id\t1\t100.00\tNULL\n1\tSIMPLE\ts\tNULL\tALL\tPRIMARY\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n1\tSIMPLE\tp\tNULL\tALL\tuk_payment_appointment_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing where; Using join buffer (hash join)\n"
+    },
+    "rewritten": {
+      "median_ms": 0.301,
+      "samples_ms": [
+        0.45,
+        0.301,
+        0.276,
+        0.278,
+        0.421,
+        0.324,
+        0.279
+      ],
+      "explain": "1\tPRIMARY\td\tNULL\tALL\tPRIMARY,idx_doctor_department_id\tNULL\tNULL\tNULL\t1\t100.00\tUsing temporary; Using filesort\n1\tPRIMARY\tdep\tNULL\teq_ref\tPRIMARY\tPRIMARY\t8\tmadp_index_benchmark.d.department_id\t1\t100.00\tNULL\n1\tPRIMARY\ts\tNULL\tALL\tPRIMARY\tNULL\tNULL\tNULL\t1\t100.00\tUsing join buffer (hash join)\n1\tPRIMARY\t<derived2>\tNULL\tref\t<auto_key1>\t<auto_key1>\t8\tmadp_index_benchmark.d.id\t2\t10.00\tUsing where\n1\tPRIMARY\tp\tNULL\teq_ref\tuk_payment_appointment_id\tuk_payment_appointment_id\t8\ta.id\t1\t100.00\tNULL\n2\tDERIVED\tappointment\tNULL\tref\tidx_appointment_patient,idx_appointment_patient_created,idx_appointment_patient_status_created\tidx_appointment_patient_status_created\t130\tconst,const\t333\t100.00\tNULL\n"
+    }
+  }
+}

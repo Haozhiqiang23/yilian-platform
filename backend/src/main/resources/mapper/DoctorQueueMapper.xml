@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.doctorqueue.mapper.DoctorQueueMapper">
+
+    <!-- 总数和列表复用同一条件，确保分页 total 与 records 一致。 -->
+    <sql id="mineConditions">
+        WHERE a.doctor_id = #{doctorId}
+          AND s.visit_date = #{visitDate}
+        <if test="query.status != null and query.status != ''">
+            AND a.status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="countMine" resultType="int">
+        SELECT COUNT(*)
+        FROM queue q
+        INNER JOIN appointment a ON a.id = q.appointment_id
+        INNER JOIN source s ON s.id = a.source_id
+        <include refid="mineConditions" />
+    </select>
+
+    <select id="selectMine"
+            resultType="com.yilian.madp.doctorqueue.vo.DoctorQueueItemResponse">
+        SELECT q.id AS queue_id,
+               a.id AS appointment_id,
+               p.id AS patient_id,
+               p.name AS patient_name,
+               q.queue_no,
+               s.visit_date,
+               s.time_period,
+               CONCAT(s.visit_date, ' ', s.time_period) AS appointment_time,
+               q.sign_time AS sign_in_time,
+               a.status,
+               q.status AS queue_status,
+               mr.id AS medical_record_id,
+               mr.diagnosis,
+               mr.treatment
+        FROM queue q
+        INNER JOIN appointment a ON a.id = q.appointment_id
+        INNER JOIN source s ON s.id = a.source_id
+        INNER JOIN patient p ON p.id = a.patient_id
+        LEFT JOIN medical_record mr ON mr.appointment_id = a.id
+        <include refid="mineConditions" />
+        ORDER BY q.sort_no ASC, q.sign_time ASC, q.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+</mapper>

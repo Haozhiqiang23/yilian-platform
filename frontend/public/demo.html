@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>演示入口 · 医联智诊平台</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f0fdfa;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid rgba(16, 100, 94, 0.12);
+      border-radius: 20px;
+      padding: 36px 32px;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(13, 110, 103, 0.12);
+      max-width: 340px;
+    }
+    h1 { font-size: 18px; color: #134e4a; margin: 0 0 8px; }
+    p { font-size: 13px; color: #5b7a76; margin: 0 0 22px; line-height: 1.7; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #14b8a6, #0b7a72);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+    .btn.ghost {
+      background: #e0f4f2;
+      color: #0b6e68;
+    }
+    .tip { font-size: 11.5px; color: #9dbdb8; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>医联智诊 · 演示入口</h1>
+    <p>选择要查看的端，点击后自动写入演示会话并跳转（仅开发调试用）。</p>
+    <button class="btn" onclick="goto('patient')">进入患者首页</button>
+    <button class="btn ghost" onclick="goto('doctor')">进入医生工作台</button>
+    <button class="btn ghost" onclick="goto('admin')">进入管理员首页</button>
+    <div class="tip">会话为演示数据，刷新页面需重新进入</div>
+  </div>
+  <script>
+    function goto(role) {
+      const names = { patient: '志强', doctor: '王医生', admin: '管理员' }
+      localStorage.setItem('yilian_token', 'demo-token-' + Date.now())
+      localStorage.setItem('yilian_user', JSON.stringify({ userId: 1, role: role, name: names[role] }))
+      const path = { patient: '/patient/home', doctor: '/doctor/dashboard', admin: '/admin/home' }[role]
+      location.href = path
+    }
+  </script>
+</body>
+</html>

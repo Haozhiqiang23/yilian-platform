@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.signin.mapper.SignInMapper">
+
+    <!-- 锁定预约，保证同一预约的并发签到请求依次执行。 -->
+    <select id="selectOwnedAppointmentForUpdate"
+            resultType="com.yilian.madp.signin.vo.SignInAppointmentLockResponse">
+        SELECT a.id AS appointment_id,
+               a.doctor_id,
+               a.status,
+               s.visit_date,
+               s.time_period,
+               s.start_time,
+               s.end_time
+        FROM appointment a
+        INNER JOIN source s
+                ON s.id = a.source_id
+        WHERE a.id = #{appointmentId}
+          AND a.patient_id = #{patientId}
+        FOR UPDATE
+    </select>
+
+    <select id="countByAppointmentId" resultType="int">
+        SELECT COUNT(*)
+        FROM sign_in
+        WHERE appointment_id = #{appointmentId}
+    </select>
+
+    <select id="lockDoctor" resultType="long">
+        SELECT id
+        FROM doctor
+        WHERE id = #{doctorId}
+        FOR UPDATE
+    </select>
+
+    <!-- 取该医生当天已有排队号中的最大数字部分。 -->
+    <select id="selectMaxQueueSequence" resultType="int">
+        SELECT COALESCE(
+                   MAX(CAST(SUBSTRING(q.queue_no, 2) AS UNSIGNED)),
+                   0
+               )
+        FROM queue q
+        INNER JOIN appointment a
+                ON a.id = q.appointment_id
+        INNER JOIN source s
+                ON s.id = a.source_id
+        WHERE a.doctor_id = #{doctorId}
+          AND s.visit_date = #{visitDate}
+    </select>
+
+    <update id="markAppointmentSignedIn">
+        UPDATE appointment
+        SET status = '已签到'
+        WHERE id = #{appointmentId}
+          AND status = '已支付'
+    </update>
+
+</mapper>

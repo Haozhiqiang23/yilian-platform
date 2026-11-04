@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.prescription.mapper.PrescriptionMapper">
+
+    <!--
+        userId 来自 JWT。把医生归属条件直接写进 SQL，既完成权限校验，
+        也避免先查出其他医生的诊疗记录后再判断而泄露数据。
+    -->
+    <select id="selectOwnedMedicalRecord"
+            resultType="com.yilian.madp.prescription.vo.PrescriptionMedicalRecordOwner">
+        SELECT mr.id AS medical_record_id,
+               pt.user_id AS patient_user_id
+        FROM medical_record mr
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        WHERE mr.id = #{medicalRecordId}
+          AND d.user_id = #{userId}
+    </select>
+
+    <!-- 总数和列表复用相同条件，保证分页结果一致。 -->
+    <sql id="doctorPrescriptionConditions">
+        WHERE d.user_id = #{userId}
+        <if test="query.status != null and query.status != ''">
+            AND p.status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="countDoctorPrescriptions" resultType="int">
+        SELECT COUNT(*)
+        FROM prescription p
+        INNER JOIN medical_record mr ON mr.id = p.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        <include refid="doctorPrescriptionConditions" />
+    </select>
+
+    <select id="selectDoctorPrescriptions"
+            resultType="com.yilian.madp.prescription.vo.DoctorPrescriptionListItemResponse">
+        SELECT p.id AS prescription_id,
+               p.medical_record_id,
+               mr.appointment_id,
+               pt.id AS patient_id,
+               pt.name AS patient_name,
+               p.status,
+               p.medicine_info,
+               p.usage_info,
+               p.amount,
+               p.create_time
+        FROM prescription p
+        INNER JOIN medical_record mr ON mr.id = p.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        INNER JOIN patient pt ON pt.id = mr.patient_id
+        <include refid="doctorPrescriptionConditions" />
+        ORDER BY p.create_time DESC, p.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- FOR UPDATE 必须在事务中使用，串行化同一张处方的并发编辑。 -->
+    <select id="selectOwnedPrescriptionForUpdate"
+            resultType="com.yilian.madp.prescription.vo.PrescriptionLockResponse">
+        SELECT p.id AS prescription_id,
+               p.status
+        FROM prescription p
+        INNER JOIN medical_record mr ON mr.id = p.medical_record_id
+        INNER JOIN doctor d ON d.id = mr.doctor_id
+        WHERE p.id = #{prescriptionId}
+          AND d.user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <!-- 再次限制旧状态为草稿，作为业务判断之外的并发保护。 -->
+    <update id="updateDraftPrescription">
+        UPDATE prescription
+        SET medicine_info = #{request.medicineInfo},
+            usage_info = #{request.usageInfo},
+            amount = #{request.amount},
+            status = #{request.status}
+        WHERE id = #{prescriptionId}
+          AND status = '草稿'
+    </update>
+
+    <sql id="prescriptionDetailColumns">
+        p.id AS prescription_id,
+        p.medical_record_id,
+        mr.appointment_id,
+        p.status,
+        p.medicine_info,
+        p.usage_info,
+        p.amount,
+        p.create_time,
+        d.id AS doctor_id,
+        d.name AS doctor_name,
+        dep.name AS department
+    </sql>
+
+    <!-- 患者只能根据登录用户 ID 查看自己的处方。 -->
+    <select id="selectPatientOwnedDetail"
+            resultType="com.yilian.madp.prescription.vo.PrescriptionDetailResponse">
+        SELECT <include refid="prescriptionDetailColumns" />
+        FROM prescription p
+        INNER JOIN medical_record mr
+                ON mr.id = p.medical_record_id
+        INNER JOIN patient pt
+                ON pt.id = mr.patient_id
+        INNER JOIN doctor d
+                ON d.id = mr.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        WHERE p.id = #{prescriptionId}
+          AND pt.user_id = #{userId}
+    </select>
+
+    <!-- 医生只能查看归属于本人诊疗记录的处方。 -->
+    <select id="selectDoctorOwnedDetail"
+            resultType="com.yilian.madp.prescription.vo.PrescriptionDetailResponse">
+        SELECT <include refid="prescriptionDetailColumns" />
+        FROM prescription p
+        INNER JOIN medical_record mr
+                ON mr.id = p.medical_record_id
+        INNER JOIN doctor d
+                ON d.id = mr.doctor_id
+        INNER JOIN department dep
+                ON dep.id = d.department_id
+        WHERE p.id = #{prescriptionId}
+          AND d.user_id = #{userId}
+    </select>
+
+</mapper>

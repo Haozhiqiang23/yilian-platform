@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.log.mapper.AdminLogMapper">
+
+    <!-- 统计与列表共用条件，确保分页 total 与 records 一致。 -->
+    <sql id="logConditions">
+        WHERE 1 = 1
+        <if test="query.keyword != null">
+            AND (
+                u.username LIKE CONCAT('%', #{query.keyword}, '%')
+                OR l.operation_type LIKE CONCAT('%', #{query.keyword}, '%')
+                OR l.action LIKE CONCAT('%', #{query.keyword}, '%')
+                OR l.target LIKE CONCAT('%', #{query.keyword}, '%')
+                OR l.reason LIKE CONCAT('%', #{query.keyword}, '%')
+                OR CAST(l.target_id AS CHAR) = #{query.keyword}
+            )
+        </if>
+        <if test="query.operation != null and query.operation == 'STATUS'">
+            AND l.operation_type LIKE '%_STATUS'
+        </if>
+        <if test="query.operation != null and query.operation != 'STATUS'">
+            AND l.operation_type = #{query.operation}
+        </if>
+        <if test="query.startDate != null">
+            AND l.create_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND l.create_time &lt; DATE_ADD(#{query.endDate}, INTERVAL 1 DAY)
+        </if>
+    </sql>
+
+    <select id="countLogs" resultType="int">
+        SELECT COUNT(*)
+        FROM operation_log l
+        LEFT JOIN sys_user u ON u.id = l.operator_id
+        <include refid="logConditions" />
+    </select>
+
+    <select id="selectLogs"
+            resultType="com.yilian.madp.admin.log.vo.AdminLogListItemResponse">
+        SELECT l.id,
+               l.operator_id,
+               COALESCE(u.username, '系统') AS operator_name,
+               COALESCE(u.role, 'SYSTEM') AS operator_role,
+               l.operation_type,
+               l.action,
+               l.target_type,
+               l.target_id,
+               l.target,
+               l.reason,
+               l.result,
+               l.create_time
+        FROM operation_log l
+        LEFT JOIN sys_user u ON u.id = l.operator_id
+        <include refid="logConditions" />
+        ORDER BY l.create_time DESC, l.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectLogById"
+            resultType="com.yilian.madp.admin.log.vo.AdminLogDetailResponse">
+        SELECT l.id,
+               l.operator_id,
+               COALESCE(u.username, '系统') AS operator_name,
+               COALESCE(u.role, 'SYSTEM') AS operator_role,
+               l.operation_type,
+               l.action,
+               l.target_type,
+               l.target_id,
+               l.target,
+               CASE l.target_type
+                   WHEN 'DOCTOR' THEN d.name
+                   WHEN 'SOURCE' THEN CONCAT(sd.name, ' ', DATE_FORMAT(s.visit_date, '%Y-%m-%d'), ' ', s.time_period, '号源')
+                   WHEN 'REFUND' THEN CONCAT(COALESCE(rp.name, '未知患者'), '的退款申请')
+                   WHEN 'QUEUE' THEN CONCAT(COALESCE(qp.name, '未知患者'), '的排队记录')
+                   ELSE l.target
+               END AS target_name,
+               CASE l.target_type
+                   WHEN 'REFUND' THEN ra.id
+                   WHEN 'QUEUE' THEN qa.id
+                   ELSE NULL
+               END AS appointment_id,
+               CASE l.target_type
+                   WHEN 'REFUND' THEN rp.name
+                   WHEN 'QUEUE' THEN qp.name
+                   ELSE NULL
+               END AS patient_name,
+               CASE l.target_type
+                   WHEN 'DOCTOR' THEN d.name
+                   WHEN 'SOURCE' THEN sd.name
+                   WHEN 'REFUND' THEN rd.name
+                   WHEN 'QUEUE' THEN qd.name
+                   ELSE NULL
+               END AS doctor_name,
+               CASE l.target_type
+                   WHEN 'DOCTOR' THEN CONCAT('医生ID=', d.id, '，账号ID=', d.user_id)
+                   WHEN 'SOURCE' THEN CONCAT('号源ID=', s.id, '，出诊=', DATE_FORMAT(s.visit_date, '%Y-%m-%d'), ' ', s.time_period)
+                   WHEN 'REFUND' THEN CONCAT('退款ID=', r.id, '，预约ID=', ra.id, '，患者=', COALESCE(rp.name, '未知'), '，医生=', COALESCE(rd.name, '未知'))
+                   WHEN 'QUEUE' THEN CONCAT('队列ID=', q.id, '，预约ID=', qa.id, '，排队号=', q.queue_no, '，患者=', COALESCE(qp.name, '未知'), '，医生=', COALESCE(qd.name, '未知'))
+                   ELSE l.target
+               END AS business_info,
+               l.reason,
+               l.result,
+               l.create_time
+        FROM operation_log l
+        LEFT JOIN sys_user u ON u.id = l.operator_id
+        LEFT JOIN doctor d
+               ON l.target_type = 'DOCTOR' AND d.id = l.target_id
+        LEFT JOIN source s
+               ON l.target_type = 'SOURCE' AND s.id = l.target_id
+        LEFT JOIN doctor sd ON sd.id = s.doctor_id
+        LEFT JOIN refund r
+               ON l.target_type = 'REFUND' AND r.id = l.target_id
+        LEFT JOIN payment rpay ON rpay.id = r.payment_id
+        LEFT JOIN appointment ra ON ra.id = rpay.appointment_id
+        LEFT JOIN patient rp ON rp.id = ra.patient_id
+        LEFT JOIN doctor rd ON rd.id = ra.doctor_id
+        LEFT JOIN queue q
+               ON l.target_type = 'QUEUE' AND q.id = l.target_id
+        LEFT JOIN appointment qa ON qa.id = q.appointment_id
+        LEFT JOIN patient qp ON qp.id = qa.patient_id
+        LEFT JOIN doctor qd ON qd.id = qa.doctor_id
+        WHERE l.id = #{id}
+    </select>
+
+</mapper>

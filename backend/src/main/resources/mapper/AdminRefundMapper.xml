@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.admin.refund.mapper.AdminRefundMapper">
+
+    <sql id="refundConditions">
+        WHERE 1 = 1
+        <if test="query.status != null">
+            AND r.status = #{query.status}
+        </if>
+        <if test="query.keyword != null">
+            AND (
+                patient.name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR doctor.name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR CAST(a.id AS CHAR) = #{query.keyword}
+            )
+        </if>
+    </sql>
+
+    <select id="countRefunds" resultType="int">
+        SELECT COUNT(*)
+        FROM refund r
+        INNER JOIN payment pay ON pay.id = r.payment_id
+        INNER JOIN appointment a ON a.id = pay.appointment_id
+        INNER JOIN patient ON patient.id = a.patient_id
+        INNER JOIN doctor ON doctor.id = a.doctor_id
+        <include refid="refundConditions" />
+    </select>
+
+    <select id="selectRefunds"
+            resultType="com.yilian.madp.admin.refund.vo.AdminRefundListItemResponse">
+        SELECT r.id AS refund_id,
+               a.id AS appointment_id,
+               pay.order_no,
+               patient.name AS patient_name,
+               doctor.name AS doctor_name,
+               r.amount,
+               r.reason,
+               r.note,
+               r.status,
+               a.status AS appointment_status,
+               CASE
+                   WHEN r.status != '退款申请' THEN FALSE
+                   WHEN r.reason LIKE '医生停诊：%' THEN FALSE
+                   WHEN a.status != '退款中' THEN FALSE
+                   ELSE TRUE
+               END AS can_reject,
+               CASE
+                   WHEN r.status != '退款申请' THEN '该退款已经处理'
+                   WHEN r.reason LIKE '医生停诊：%' THEN '医生停诊产生的强制退款不能拒绝'
+                   WHEN a.status != '退款中' THEN '关联预约不是退款中状态，不能恢复预约'
+                   ELSE NULL
+               END AS reject_blocked_reason,
+               r.create_time,
+               r.process_time
+        FROM refund r
+        INNER JOIN payment pay ON pay.id = r.payment_id
+        INNER JOIN appointment a ON a.id = pay.appointment_id
+        INNER JOIN patient ON patient.id = a.patient_id
+        INNER JOIN doctor ON doctor.id = a.doctor_id
+        <include refid="refundConditions" />
+        ORDER BY r.create_time DESC, r.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 锁定退款及其关联预约，避免重复审核。 -->
+    <select id="selectRefundForUpdate"
+            resultType="com.yilian.madp.admin.refund.vo.RefundProcessLockResponse">
+        SELECT r.id AS refund_id,
+               a.id AS appointment_id,
+               a.source_id,
+               patient.user_id AS recipient_user_id,
+               r.status,
+               a.status AS appointment_status,
+               r.reason
+        FROM refund r
+        INNER JOIN payment pay ON pay.id = r.payment_id
+        INNER JOIN appointment a ON a.id = pay.appointment_id
+        INNER JOIN patient ON patient.id = a.patient_id
+        WHERE r.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <update id="updateRefundResult">
+        UPDATE refund
+        SET status = #{status},
+            note = #{note},
+            process_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = '退款申请'
+    </update>
+
+    <update id="restoreAppointmentPaid">
+        UPDATE appointment
+        SET status = '已支付'
+        WHERE id = #{appointmentId}
+          AND status = '退款中'
+    </update>
+
+    <update id="cancelRefundingAppointment">
+        UPDATE appointment
+        SET status = '取消'
+        WHERE id = #{appointmentId}
+          AND status = '退款中'
+    </update>
+
+    <update id="restoreSource">
+        UPDATE source
+        SET remain_count = remain_count + 1
+        WHERE id = #{sourceId}
+          AND remain_count &lt; total_count
+    </update>
+
+    <insert id="insertProcessLog">
+        INSERT INTO operation_log (
+            operator_id, operation_type, action, target_type, target_id,
+            target, reason, result
+        ) VALUES (
+            #{adminId}, 'REFUND_PROCESS', #{action}, 'REFUND', #{refundId},
+            LEFT(CONCAT('退款ID=', #{refundId}, '，预约ID=', #{appointmentId}), 100),
+            #{note}, '成功'
+        )
+    </insert>
+
+</mapper>

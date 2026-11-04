@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.doctorappointment.mapper.DoctorAppointmentMapper">
+
+    <!--
+        通过 doctor.user_id 校验预约归属，并锁定预约行。
+        LEFT JOIN 允许业务层区分“预约存在但支付记录异常”的情况。
+    -->
+    <select id="selectOwnedAppointmentForUpdate"
+            resultType="com.yilian.madp.doctorappointment.vo.DoctorAppointmentLockResponse">
+        SELECT a.id AS appointment_id,
+               a.doctor_id,
+               a.patient_id,
+               pt.user_id AS patient_user_id,
+               a.status,
+               p.status AS payment_status
+        FROM appointment a
+        INNER JOIN doctor d ON d.id = a.doctor_id
+        INNER JOIN patient pt ON pt.id = a.patient_id
+        LEFT JOIN payment p ON p.appointment_id = a.id
+        WHERE a.id = #{appointmentId}
+          AND d.user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <!-- 队列也加排他锁，避免重复点击或并发状态修改。 -->
+    <select id="selectQueueForUpdate"
+            resultType="com.yilian.madp.doctorappointment.vo.DoctorQueueLockResponse">
+        SELECT id AS queue_id,
+               status
+        FROM queue
+        WHERE appointment_id = #{appointmentId}
+        FOR UPDATE
+    </select>
+
+    <update id="markAppointmentInConsultation">
+        UPDATE appointment
+        SET status = '接诊中'
+        WHERE id = #{appointmentId}
+          AND status = '已签到'
+    </update>
+
+    <update id="markQueueInConsultation">
+        UPDATE queue
+        SET status = '接诊中'
+        WHERE id = #{queueId}
+          AND status = '等待接诊'
+    </update>
+
+    <update id="markAppointmentCompleted">
+        UPDATE appointment
+        SET status = '已完成'
+        WHERE id = #{appointmentId}
+          AND status = '接诊中'
+    </update>
+
+    <update id="markQueueCompleted">
+        UPDATE queue
+        SET status = '已完成'
+        WHERE id = #{queueId}
+          AND status = '接诊中'
+    </update>
+
+</mapper>

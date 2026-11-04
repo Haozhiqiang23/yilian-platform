@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yilian.madp.message.mapper.MessageMapper">
+
+    <sql id="messageColumns">
+        id,
+        title,
+        content,
+        message_type AS type,
+        is_read AS `read`,
+        create_time AS created_at,
+        read_time,
+        related_type,
+        related_id
+    </sql>
+
+    <!-- 列表和总数复用完全相同的条件，保证分页 total 准确。 -->
+    <sql id="mineConditions">
+        WHERE recipient_user_id = #{userId}
+        <if test="query.type != null and query.type != ''">
+            AND message_type = #{query.type}
+        </if>
+        <if test="query.unreadOnly != null and query.unreadOnly">
+            AND is_read = 0
+        </if>
+    </sql>
+
+    <select id="countMine" resultType="int">
+        SELECT COUNT(*)
+        FROM message
+        <include refid="mineConditions" />
+    </select>
+
+    <select id="selectMine"
+            resultType="com.yilian.madp.message.vo.MessageResponse">
+        SELECT <include refid="messageColumns" />
+        FROM message
+        <include refid="mineConditions" />
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectOwnedDetail"
+            resultType="com.yilian.madp.message.vo.MessageResponse">
+        SELECT <include refid="messageColumns" />
+        FROM message
+        WHERE id = #{messageId}
+          AND recipient_user_id = #{userId}
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*)
+        FROM message
+        WHERE recipient_user_id = #{userId}
+          AND is_read = 0
+    </select>
+
+    <!-- is_read 条件使重复调用保持幂等：已读消息不会被重复更新。 -->
+    <update id="markOwnedRead">
+        UPDATE message
+        SET is_read = 1,
+            read_time = CURRENT_TIMESTAMP
+        WHERE id = #{messageId}
+          AND recipient_user_id = #{userId}
+          AND is_read = 0
+    </update>
+
+    <update id="markAllOwnedRead">
+        UPDATE message
+        SET is_read = 1,
+            read_time = CURRENT_TIMESTAMP
+        WHERE recipient_user_id = #{userId}
+          AND is_read = 0
+    </update>
+
+</mapper>
