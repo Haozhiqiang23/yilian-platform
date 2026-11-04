@@ -24,11 +24,11 @@
 
 **患者端首页**：集中展示医生查询、我的预约、排队签到和诊疗记录入口。
 
-![医联智诊患者端首页](docs/images/patient-home.png)
+![医联智诊患者端首页](docs/images/patient-home-mysql.png)
 
 **医生列表（数据库联调）**：通过 Java 接口读取 MySQL 中的医生和号源，页面支持按姓名、科室和出诊日期筛选。
 
-![医联智诊医生列表](docs/images/patient-doctors.png)
+![医联智诊医生列表](docs/images/patient-doctors-mysql.png)
 
 ## 项目结构
 
